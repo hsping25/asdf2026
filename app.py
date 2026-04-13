@@ -114,7 +114,7 @@ display_df = load_data(current_user)
 
 if not display_df.empty:
     # 타이틀과 진척도 바를 한 줄에 배치
-    col_t, col_p = st.columns([0.15 0.85])
+    col_t, col_p = st.columns([0.15, 0.85])
     with col_t:
         st.title("📑 플래너")
     with col_p:
