@@ -7,15 +7,47 @@ from datetime import datetime, timedelta
 if 'user_plan' not in st.session_state:
     st.session_state.user_plan = pd.DataFrame(columns=['Task', 'Date', 'Amount', 'Status'])
 
-def load_session_data():
-    return st.session_state.user_plan
+# 사용자별 고유 파일명을 생성하는 함수
+def get_user_filename(user_id):
+    safe_id = user_id.strip().replace(" ", "_")
+    return f"plan_{safe_id}.csv"
 
-def save_session_data(df):
-    st.session_state.user_plan = df
+# 아이디별로 데이터를 불러오는 함수
+def load_data(user_id):
+    filename = get_user_filename(user_id)
+    if os.path.exists(filename):
+        df = pd.read_csv(filename)
+        if not df.empty:
+            df['Date'] = pd.to_datetime(df['Date']).dt.date
+        return df
+    return pd.DataFrame(columns=['Task', 'Date', 'Amount', 'Status'])
+
+# 아이디별로 데이터를 저장하는 함수
+def save_data(df, user_id):
+    filename = get_user_filename(user_id)
+    df.to_csv(filename, index=False)
+
 
 # --- 페이지 설정 ---
 st.set_page_config(page_title="개인별 학습 플래너", layout="wide")
 st.title("🔐 개인 세션 학습 플래너")
+# 세션에 로그인 정보가 없으면 초기화
+if 'user_id' not in st.session_state:
+    st.session_state.user_id = None
+
+# 로그인 로직
+if st.session_state.user_id is None:
+    st.title("🔐 학습 플래너 접속")
+    user_input = st.text_input("아이디를 입력하세요")
+    if st.button("접속"):
+        if user_input:
+            st.session_state.user_id = user_input
+            st.rerun()
+    st.stop() # 로그인 전까지 아래 코드 실행 중단
+
+# 현재 로그인한 유저 변수 할당
+current_user = st.session_state.user_id
+
 st.caption("이 창에서 입력한 계획은 이 창에서만 유지됩니다. (새로고침 시 초기화)")
 
 # --- 사이드바 입력창 ---
