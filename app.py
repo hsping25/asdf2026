@@ -50,7 +50,7 @@ if 'user_id' not in st.session_state:
 # --- 3. 로그인 로직 ---
 if st.session_state.user_id is None:
     st.title("🔐 학습 플래너 접속")
-    user_input = st.text_input("사용자 아이디를 입력하세요", placeholder="예: 길동이")
+    user_input = st.text_input("사용자 아이디를 입력하세요")
     if st.button("접속하기"):
         if user_input:
             st.session_state.user_id = user_input
@@ -114,7 +114,7 @@ display_df = load_data(current_user)
 
 if not display_df.empty:
     # 타이틀과 진척도 바를 한 줄에 배치
-    col_t, col_p = st.columns([0.2, 0.8])
+    col_t, col_p = st.columns([0.15 0.85])
     with col_t:
         st.title("📑 플래너")
     with col_p:
