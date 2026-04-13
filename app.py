@@ -87,26 +87,40 @@ if not display_df.empty:
     with tab2:
         st.subheader("✅ 오늘의 미션")
         today_val = datetime.now().date()
-        # 오늘 날짜에 해당하는 데이터만 추출
+        # 오늘 날짜 데이터 추출
         today_tasks = display_df[display_df['Date'] == today_val].copy()
         
         if not today_tasks.empty:
             for idx, row in today_tasks.iterrows():
-                # 이미 완료된 상태인지 확인
-                is_completed = (row['Status'] == 'Done')
+                # 1. 화면을 두 칸으로 나눔 (할 일 내용 | 삭제 버튼)
+                col_task, col_delete = st.columns([0.8, 0.2])
                 
-                # 체크박스 생성
-                # key는 중복 방지를 위해 인덱스와 과목명을 조합합니다.
-                check = st.checkbox(f"{row['Task']} ({row['Amount']} 분량)", value=is_completed, key=f"check_{idx}")
-                
-                # 체크 상태가 변하면 데이터 업데이트
-                new_status = 'Done' if check else 'Pending'
-                if new_status != row['Status']:
-                    display_df.at[idx, 'Status'] = new_status
-                    save_data(display_df)
-                    st.rerun() # 화면 갱신하여 상태 반영
+                with col_task:
+                    is_completed = (row['Status'] == 'Done')
+                    # 체크박스로 상태 변경
+                    check = st.checkbox(f"{row['Task']} ({row['Amount']} 분량)", 
+                                        value=is_completed, 
+                                        key=f"check_{idx}")
+                    
+                    # 체크 여부에 따른 상태 업데이트
+                    new_status = 'Done' if check else 'Pending'
+                    if new_status != row['Status']:
+                        display_df.at[idx, 'Status'] = new_status
+                        save_data(display_df)
+                        st.rerun()
+
+                with col_delete:
+                    # 2. 상태가 'Done'인 경우에만 삭제 버튼 표시
+                    if row['Status'] == 'Done':
+                        if st.button("🗑️ 삭제", key=f"del_{idx}"):
+                            # 해당 행 삭제 후 저장
+                            display_df = display_df.drop(idx)
+                            save_data(display_df)
+                            st.success("삭제되었습니다.")
+                            st.rerun()
         else:
             st.info("오늘 예정된 학습이 없습니다. 여유로운 하루 되세요! ☕")
+
 
 
     with tab3:
