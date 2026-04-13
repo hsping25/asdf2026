@@ -26,7 +26,7 @@ def save_data(df, user_id):
     df.to_csv(filename, index=False)
 
 def show_progress_chart(df):
-    """과목별 가로 막대 진척도 그래프"""
+    """과목별 가로 막대 진척도 그래프 (크기 축소 및 % 표시 제거)"""
     if df.empty:
         return
     
@@ -35,23 +35,41 @@ def show_progress_chart(df):
         task_df = df[df['Task'] == task]
         total = len(task_df)
         done = len(task_df[task_df['Status'] == 'Done'])
+        # 그래프 계산용 수치는 유지하되 표시만 안 함
         percent = (done / total) * 100
-        progress_data.append({'과목': task, '진척도(%)': percent, '상태': f"{done}/{total}"})
+        progress_data.append({'과목': task, '진척도': percent, '상태': f"{done}/{total}"})
     
     pdf = pd.DataFrame(progress_data)
     
+    # 막대 그래프 생성
     fig = px.bar(pdf, 
-                 x='진척도(%)', 
+                 x='진척도', 
                  y='과목', 
                  orientation='h', 
-                 title="📊 과목별 학습 진척도",
-                 text='상태',
+                 title="📊 과목별 학습 현황",
+                 text='상태', # 퍼센트 대신 '3/10' 같은 개수만 표시
                  range_x=[0, 100],
-                 color='진척도(%)',
+                 color='진척도',
                  color_continuous_scale='Blues')
     
-    fig.update_layout(height=200 + (len(pdf) * 40), showlegend=False, margin=dict(l=20, r=20, t=40, b=20))
-    st.plotly_chart(fig, use_container_width=True)
+    # 레이아웃 수정: 크기 줄이기 및 X축(퍼센트) 숫자 제거
+    fig.update_layout(
+        height=150 + (len(pdf) * 30), # 그래프 높이 축소
+        showlegend=False, 
+        margin=dict(l=20, r=20, t=40, b=20),
+        xaxis=dict(
+            showticklabels=False, # 하단 % 숫자 제거
+            title=None,           # X축 제목 제거
+            fixedrange=True       # 확대/축소 방지
+        ),
+        yaxis=dict(title=None)    # Y축 제목(과목) 제거 (항목명은 유지)
+    )
+    
+    # 막대 안의 텍스트 위치 및 서식 설정
+    fig.update_traces(textposition='inside', texttemplate='%{text}')
+    
+    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+
 
 # --- 2. 페이지 설정 및 로그인 ---
 st.set_page_config(page_title="스마트 학습 플래너", layout="wide")
