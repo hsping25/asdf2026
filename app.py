@@ -109,20 +109,20 @@ with st.sidebar:
                 st.success("계획이 추가되었습니다!")
                 st.rerun()
 
-# 데이터 로드 및 화면 출력
+# 데이터 로드
 display_df = load_data(current_user)
 
+# --- 타이틀은 데이터 유무와 상관없이 항상 최상단에 고정 ---
+st.title(f"📚 {current_user}님의 스마트 플래너")
+
 if not display_df.empty:
-    # 타이틀과 진척도 바를 한 줄에 배치
-    col_t, col_p = st.columns([0.3, 0.7])
-    with col_t:
-        st.title("📑 플래너")
-    with col_p:
-        st.write("") # 간격 맞춤용
+    # 1. 진척도 요약 (타이틀 바로 아래 콤팩트하게 배치)
+    with st.container():
         show_progress_chart(display_df)
     
     st.divider()
     
+    # 2. 메인 탭 (일정 및 미션)
     display_df = display_df.sort_values(by=['Date', 'Task']).reset_index(drop=True)
     tab1, tab2 = st.tabs(["📅 전체 일정", "✅ 오늘의 미션"])
     
@@ -133,4 +133,31 @@ if not display_df.empty:
             st.rerun()
 
     with tab2:
-        today_val = datetime.now().date
+        today_val = datetime.now().date()
+        today_indices = display_df[display_df['Date'] == today_val].index
+        
+        if not today_indices.empty:
+            for idx in today_indices:
+                row = display_df.loc[idx]
+                c1, c2 = st.columns([0.8, 0.2])
+                with c1:
+                    is_done = (row['Status'] == 'Done')
+                    check = st.checkbox(f"{row['Task']} ({row['Amount']}개)", value=is_done, key=f"chk_{idx}")
+                    if check != is_done:
+                        display_df.at[idx, 'Status'] = 'Done' if check else 'Pending'
+                        save_data(display_df, current_user)
+                        st.rerun()
+                with c2:
+                    if row['Status'] == 'Done':
+                        if st.button("🗑️ 삭제", key=f"del_{idx}"):
+                            new_df = display_df.drop(idx)
+                            save_data(new_df, current_user)
+                            st.rerun()
+        else:
+            st.info("오늘 예정된 학습이 없습니다.")
+            
+else:
+    # --- 데이터가 없을 때만 보이는 안내 문구 ---
+    st.divider()
+    st.info("💡 아직 등록된 계획이 없습니다. 왼쪽 사이드바에서 새로운 학습 계획을 추가해 보세요!")
+    # 사용자가 당황하지 않게 사이드바를 보라는 화살표나 안내를 추가해도 좋습니다.
