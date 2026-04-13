@@ -2,6 +2,37 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 import os
+import plotly.express as px
+
+def show_progress_chart(df):
+    if df.empty:
+        return
+    
+    # 1. 과목별로 전체 개수와 완료(Done) 개수 계산
+    progress_data = []
+    for task in df['Task'].unique():
+        task_df = df[df['Task'] == task]
+        total = len(task_df)
+        done = len(task_df[task_df['Status'] == 'Done'])
+        percent = (done / total) * 100
+        progress_data.append({'과목': task, '진척도(%)': percent, '상태': f"{done}/{total}"})
+    
+    pdf = pd.DataFrame(progress_data)
+    
+    # 2. Plotly 가로 막대그래프 생성
+    fig = px.bar(pdf, 
+                 x='진척도(%)', 
+                 y='과목', 
+                 orientation='h', 
+                 title="📊 과목별 학습 진척도",
+                 text='상태', # 막대 위에 3/10 같은 텍스트 표시
+                 range_x=[0, 100],
+                 color='진척도(%)',
+                 color_continuous_scale='Blues')
+    
+    fig.update_layout(height=300 + (len(pdf) * 30), showlegend=False)
+    st.plotly_chart(fig, use_container_width=True)
+
 
 # 1. 사용자별 데이터 로드 및 저장 함수
 def get_user_filename(user_id):
