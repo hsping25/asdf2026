@@ -1,18 +1,14 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
+import os
 
-# --- [멀티유저/세션 관리 핵심 로직] ---
-# 서버의 파일(CSV)이 아닌, 각 브라우저 세션 메모리에 데이터를 저장합니다.
-if 'user_plan' not in st.session_state:
-    st.session_state.user_plan = pd.DataFrame(columns=['Task', 'Date', 'Amount', 'Status'])
-
-# 사용자별 고유 파일명을 생성하는 함수
+# 1. 사용자별 데이터 로드 및 저장 함수
 def get_user_filename(user_id):
+    # 파일명에 공백이 있으면 안 되므로 처리
     safe_id = user_id.strip().replace(" ", "_")
     return f"plan_{safe_id}.csv"
 
-# 아이디별로 데이터를 불러오는 함수
 def load_data(user_id):
     filename = get_user_filename(user_id)
     if os.path.exists(filename):
@@ -22,42 +18,45 @@ def load_data(user_id):
         return df
     return pd.DataFrame(columns=['Task', 'Date', 'Amount', 'Status'])
 
-# 아이디별로 데이터를 저장하는 함수
 def save_data(df, user_id):
     filename = get_user_filename(user_id)
     df.to_csv(filename, index=False)
 
+# 2. 페이지 설정
+st.set_page_config(page_title="멀티유저 학습 플래너", layout="wide")
 
-# --- 페이지 설정 ---
-st.set_page_config(page_title="개인별 학습 플래너", layout="wide")
-st.title("🔐 개인 세션 학습 플래너")
-# 세션에 로그인 정보가 없으면 초기화
+# 3. 로그인 세션 관리
 if 'user_id' not in st.session_state:
     st.session_state.user_id = None
 
-# 로그인 로직
+# 로그인 화면
 if st.session_state.user_id is None:
-    st.title("🔐 학습 플래너 접속")
-    user_input = st.text_input("아이디를 입력하세요")
-    if st.button("접속"):
+    st.title("🔐 학습 플래너 로그인")
+    user_input = st.text_input("사용자 아이디를 입력하세요", placeholder="예: 길동이")
+    if st.button("접속하기"):
         if user_input:
             st.session_state.user_id = user_input
             st.rerun()
-    st.stop() # 로그인 전까지 아래 코드 실행 중단
+        else:
+            st.warning("아이디를 입력해야 합니다.")
+    st.stop() # 로그인이 안 되면 아래 코드를 실행하지 않음
 
-# 현재 로그인한 유저 변수 할당
+# --- 여기서부터는 로그인 성공 시 실행되는 코드 ---
 current_user = st.session_state.user_id
+st.title(f"📚 {current_user}님의 학습 플래너")
 
-st.caption("이 창에서 입력한 계획은 이 창에서만 유지됩니다. (새로고침 시 초기화)")
-
-# --- 사이드바 입력창 ---
 with st.sidebar:
+    st.header(f"👤 {current_user}님 환영합니다!")
+    if st.button("로그아웃"):
+        st.session_state.user_id = None
+        st.rerun()
+    
+    st.divider()
     st.header("➕ 새로운 계획 추가")
-    task_name = st.text_input("학습 종류", placeholder="예: 파이썬")
+    task_name = st.text_input("학습 종류")
     total_units = st.number_input("전체 분량", min_value=1, value=10)
     target_date = st.date_input("목표 마감일", min_value=datetime.now().date())
     
-    st.divider()
     mode = st.radio("배분 방식", ["일찍 끝내기", "끝까지 분산"])
     min_limit = st.number_input("하루 최소 분량", min_value=1, value=5)
     
@@ -67,7 +66,10 @@ with st.sidebar:
     
     add_btn = st.button("계획 생성", use_container_width=True)
 
-# --- 계획 생성 로직 ---
+# 데이터 불러오기
+display_df = load_data(current_user)
+
+# 계획 생성 로직
 if add_btn and task_name:
     today = datetime.now().date()
     days_available = (target_date - today).days + 1
@@ -94,26 +96,18 @@ if add_btn and task_name:
             remaining_units -= daily_amount
 
         new_df = pd.DataFrame(new_entries)
-        # 세션 데이터에 병합
-        updated_df = pd.concat([load_session_data(), new_df], ignore_index=True)
-        save_session_data(updated_df)
-        st.success(f"'{task_name}' 계획이 추가되었습니다!")
+        updated_df = pd.concat([display_df, new_df], ignore_index=True)
+        save_data(updated_df, current_user)
+        st.success("계획이 추가되었습니다!")
         st.rerun()
 
-# --- 메인 화면 출력 및 삭제 기능 ---
-display_df = load_session_data()
-
+# 메인 화면 출력
 if not display_df.empty:
-    display_df['Date'] = pd.to_datetime(display_df['Date']).dt.date
     display_df = display_df.sort_values(by=['Date', 'Task'])
-    
     tab1, tab2 = st.tabs(["📅 전체 일정", "✅ 오늘의 미션"])
     
     with tab1:
         st.dataframe(display_df, use_container_width=True, hide_index=True)
-        if st.button("🗑️ 세션 데이터 전체 초기화"):
-            st.session_state.user_plan = pd.DataFrame(columns=['Task', 'Date', 'Amount', 'Status'])
-            st.rerun()
         
     with tab2:
         today_val = datetime.now().date()
@@ -122,23 +116,20 @@ if not display_df.empty:
         if not today_tasks.empty:
             for idx, row in today_tasks.iterrows():
                 col_task, col_delete = st.columns([0.8, 0.2])
-                
                 with col_task:
                     is_done = (row['Status'] == 'Done')
                     check = st.checkbox(f"{row['Task']} ({row['Amount']}개)", value=is_done, key=f"chk_{idx}")
-                    
                     if check != is_done:
                         display_df.at[idx, 'Status'] = 'Done' if check else 'Pending'
-                        save_session_data(display_df)
+                        save_data(display_df, current_user)
                         st.rerun()
-
                 with col_delete:
                     if row['Status'] == 'Done':
                         if st.button("🗑️ 삭제", key=f"del_{idx}"):
                             updated_df = display_df.drop(idx)
-                            save_session_data(updated_df)
+                            save_data(updated_df, current_user)
                             st.rerun()
         else:
-            st.info("오늘의 계획이 없습니다.")
+            st.info("오늘 예정된 학습이 없습니다.")
 else:
-    st.info("왼쪽에서 계획을 입력해 보세요. 이 데이터는 브라우저를 닫으면 사라집니다.")
+    st.info("왼쪽 사이드바에서 첫 계획을 추가해 보세요!")
