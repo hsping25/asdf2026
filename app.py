@@ -85,12 +85,29 @@ if not display_df.empty:
         st.dataframe(display_df, use_container_width=True, hide_index=True)
         
     with tab2:
+        st.subheader("✅ 오늘의 미션")
         today_val = datetime.now().date()
-        today_tasks = display_df[display_df['Date'] == today_val]
+        # 오늘 날짜에 해당하는 데이터만 추출
+        today_tasks = display_df[display_df['Date'] == today_val].copy()
+        
         if not today_tasks.empty:
-            st.table(today_tasks[['Task', 'Amount', 'Status']])
+            for idx, row in today_tasks.iterrows():
+                # 이미 완료된 상태인지 확인
+                is_completed = (row['Status'] == 'Done')
+                
+                # 체크박스 생성
+                # key는 중복 방지를 위해 인덱스와 과목명을 조합합니다.
+                check = st.checkbox(f"{row['Task']} ({row['Amount']} 분량)", value=is_completed, key=f"check_{idx}")
+                
+                # 체크 상태가 변하면 데이터 업데이트
+                new_status = 'Done' if check else 'Pending'
+                if new_status != row['Status']:
+                    display_df.at[idx, 'Status'] = new_status
+                    save_data(display_df)
+                    st.rerun() # 화면 갱신하여 상태 반영
         else:
             st.info("오늘 예정된 학습이 없습니다. 여유로운 하루 되세요! ☕")
+
 
     with tab3:
         col1, col2 = st.columns(2)
