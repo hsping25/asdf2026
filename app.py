@@ -26,49 +26,42 @@ def save_data(df, user_id):
     df.to_csv(filename, index=False)
 
 def show_progress_chart(df):
-    """과목별 가로 막대 진척도 그래프 (크기 축소 및 % 표시 제거)"""
+    """타이틀 옆에 작고 깔끔한 직사각형 바 형태로 표시"""
     if df.empty:
         return
     
-    progress_data = []
-    for task in df['Task'].unique():
+    # 과목별 데이터 계산
+    tasks = df['Task'].unique()
+    
+    # 한 줄에 여러 과목이 나오도록 컬럼 배치
+    cols = st.columns(len(tasks) if len(tasks) > 0 else 1)
+    
+    for i, task in enumerate(tasks):
         task_df = df[df['Task'] == task]
         total = len(task_df)
         done = len(task_df[task_df['Status'] == 'Done'])
-        # 그래프 계산용 수치는 유지하되 표시만 안 함
-        percent = (done / total) * 100
-        progress_data.append({'과목': task, '진척도': percent, '상태': f"{done}/{total}"})
+        percent = done / total
+        
+        with cols[i]:
+            # 과목명과 개수 표시
+            st.caption(f"**{task}** ({done}/{total})")
+            # 그라데이션 없는 단색(파란색) 막대
+            st.progress(percent)
+
+# --- 메인 화면 출력부 (app.py 중간) ---
+display_df = load_data(current_user)
+
+if not display_df.empty:
+    # 제목과 그래프 사이 간격을 줄이기 위해 columns 활용
+    col_title, col_status = st.columns([0.3, 0.7])
+    with col_title:
+        st.subheader("📊 과목 현황")
+    with col_status:
+        # 타이틀 옆 공간에 요약 바 표시
+        show_progress_chart(display_df)
     
-    pdf = pd.DataFrame(progress_data)
-    
-    # 막대 그래프 생성
-    fig = px.bar(pdf, 
-                 x='진척도', 
-                 y='과목', 
-                 orientation='h', 
-                 title="📊 과목별 학습 현황",
-                 text='상태', # 퍼센트 대신 '3/10' 같은 개수만 표시
-                 range_x=[0, 100],
-                 color='진척도',
-                 color_continuous_scale='Blues')
-    
-    # 레이아웃 수정: 크기 줄이기 및 X축(퍼센트) 숫자 제거
-    fig.update_layout(
-        height=150 + (len(pdf) * 30), # 그래프 높이 축소
-        showlegend=False, 
-        margin=dict(l=20, r=20, t=40, b=20),
-        xaxis=dict(
-            showticklabels=False, # 하단 % 숫자 제거
-            title=None,           # X축 제목 제거
-            fixedrange=True       # 확대/축소 방지
-        ),
-        yaxis=dict(title=None)    # Y축 제목(과목) 제거 (항목명은 유지)
-    )
-    
-    # 막대 안의 텍스트 위치 및 서식 설정
-    fig.update_traces(textposition='inside', texttemplate='%{text}')
-    
-    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+    st.divider()
+
 
 
 # --- 2. 페이지 설정 및 로그인 ---
