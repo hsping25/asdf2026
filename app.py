@@ -48,19 +48,40 @@ def show_progress_chart(df):
             # 그라데이션 없는 단색(파란색) 막대
             st.progress(percent)
 
-# --- 메인 화면 출력부 (app.py 중간) ---
-display_df = load_data(current_user)
-
-if not display_df.empty:
-    # 제목과 그래프 사이 간격을 줄이기 위해 columns 활용
-    col_title, col_status = st.columns([0.3, 0.7])
-    with col_title:
-        st.subheader("📊 과목 현황")
-    with col_status:
-        # 타이틀 옆 공간에 요약 바 표시
-        show_progress_chart(display_df)
+# --- 3. 메인 기능 (로그인 완료된 경우에만 실행) ---
+# 세션에 user_id가 있는 경우에만 변수 할당
+if st.session_state.user_id:
+    current_user = st.session_state.user_id
     
-    st.divider()
+    # 1. 데이터 불러오기 (함수 호출 시 current_user 전달)
+    display_df = load_data(current_user)
+    
+    st.title(f"📚 {current_user}님의 스마트 플래너")
+
+    # 2. 데이터가 있는 경우에만 그래프와 탭 표시
+    if not display_df.empty:
+        # 제목과 그래프 배치
+        col_title, col_status = st.columns([0.3, 0.7])
+        with col_title:
+            st.subheader("📊 과목 현황")
+        with col_status:
+            show_progress_chart(display_df)
+        
+        st.divider()
+        
+        # 탭 로직 (전체 일정 / 오늘의 미션)
+        display_df = display_df.sort_values(by=['Date', 'Task']).reset_index(drop=True)
+        tab1, tab2 = st.tabs(["📅 전체 일정", "✅ 오늘의 미션"])
+        
+        # ... (이후 tab1, tab2 내부 코드는 그대로 유지) ...
+        
+    else:
+        st.info("왼쪽 사이드바에서 계획을 추가해 보세요!")
+else:
+    # 혹시 모를 에러 방지용: 세션 아이디가 없으면 다시 로그인 유도
+    st.warning("로그인이 필요합니다.")
+    st.rerun()
+
 
 
 
