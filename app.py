@@ -22,16 +22,13 @@ def save_data(df, user_id):
     df.to_csv(filename, index=False)
 
 def show_progress_chart(df):
-    """과목별로 박스를 분리하고 아이콘으로 색상 구분"""
+    """과목별 진척도를 타이틀 옆에 작은 바 형태로 표시"""
     if df.empty:
         return
     
     tasks = df['Task'].unique()
-    # 한 줄에 최대 4개씩 배치
+    # 과목이 많을 경우 최대 4컬럼으로 나누어 표시
     cols = st.columns(min(len(tasks), 4))
-    
-    # 과목별로 돌아가며 붙일 아이콘 (색상 대용)
-    icons = ["🟦", "🟩", "🟧", "🟥", "🟪", "🟨"]
     
     for i, task in enumerate(tasks):
         task_df = df[df['Task'] == task]
@@ -39,13 +36,10 @@ def show_progress_chart(df):
         done = len(task_df[task_df['Status'] == 'Done'])
         percent = done / total if total > 0 else 0
         
+        # 컬럼 순환 배치 (i % 4)
         with cols[i % 4]:
-            # 테두리가 있는 박스(border=True) 안에 배치하여 셀 분리 효과
-            with st.container(border=True):
-                icon = icons[i % len(icons)]
-                st.markdown(f"{icon} **{task}**")
-                st.caption(f"진행: {done} / {total}")
-                st.progress(percent)
+            st.caption(f"**{task}** ({done}/{total})")
+            st.progress(percent)
 
 # --- 2. 페이지 설정 및 세션 초기화 ---
 st.set_page_config(page_title="스마트 학습 플래너", layout="wide")
