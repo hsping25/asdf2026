@@ -19,7 +19,7 @@ def save_data(df):
 
 # 2. 페이지 설정 및 제목
 st.set_page_config(page_title="스마트 학습 플래너", layout="wide")
-st.title("📚 스마트 학습 플래너 MVP")
+st.title("📚 스마트 학습 플래너")
 
 # 3. 사이드바 입력창 (없어졌다면 이 부분을 확인하세요!)
 with st.sidebar:
