@@ -137,21 +137,22 @@ if not display_df.empty:
     display_df = display_df.sort_values(by=['Date', 'Task']).reset_index(drop=True)
     tab1, tab2 = st.tabs(["📅 전체 일정", "✅ 오늘의 미션"])
     
-    with tab1:
-        # 1. 색상 매핑 (그룹별로 연한 배경색 지정)
-        # 파스텔톤 배경색 리스트 (CSS 컬러 코드)
+     with tab1:
+        # 1. 그룹별 배경색 매핑 (파스텔톤)
         colors = ['#E1F5FE', '#E8F5E9', '#FFF3E0', '#FFEBEE', '#F3E5F5', '#EFEBE9', '#FAFAFA']
         unique_gids = display_df['Group_ID'].unique()
         color_map = {gid: colors[i % len(colors)] for i, gid in enumerate(unique_gids)}
 
-        # 2. 행별로 색상을 적용하는 함수 정의
+        # 2. 스타일 함수: 배경색 입히고 글자색은 검은색(#000000)으로 고정
         def style_row(row):
             bg_color = color_map.get(row['Group_ID'], '#FFFFFF')
-            return [f'background-color: {bg_color}'] * len(row)
+            # 배경색과 함께 글자색(color)을 검정으로 강제 지정
+            return [f'background-color: {bg_color}; color: #000000;' for _ in row]
 
-        # 3. 스타일 적용 후 출력
+        # 3. 스타일 적용
         styled_df = display_df.style.apply(style_row, axis=1)
         
+        # 표 출력
         st.dataframe(styled_df, use_container_width=True, hide_index=True)
 
         if st.button("데이터 전체 초기화"):
