@@ -85,34 +85,43 @@ with st.sidebar:
     
     interval = st.number_input("날짜 간격 (1은 매일)", min_value=1, value=1)
     
-    if st.button("계획 생성 및 저장", use_container_width=True):
-        if task_name:
-            today = datetime.now().date()
-            days_available = (target_date - today).days + 1
-            new_entries = []
-            remaining_units = total_units
-            possible_days = [today + timedelta(days=i) for i in range(days_available) if i % interval == 0]
-            
-            if possible_days:
-                for i, current_date in enumerate(possible_days):
-                    if remaining_units <= 0: break
-                    days_left = len(possible_days) - i
-                    
-                    if days_left == 1:
-                        daily_amount = remaining_units
-                    else:
-                        ideal = remaining_units // days_left
-                        daily_amount = max(min_limit, ideal) if mode == "일찍 끝내기" else max(min_limit, ideal)
-                        daily_amount = min(daily_amount, remaining_units)
-                    
-                    new_entries.append({'Task': task_name, 'Date': current_date, 'Amount': daily_amount, 'Status': 'Pending'})
-                    remaining_units -= daily_amount
+if st.button("계획 생성 및 저장", use_container_width=True):
+    if task_name:
+        group_id = datetime.now().strftime("%H%M%S")
+        
+        # 기준일을 '오늘'이 아닌 사용자가 선택한 'start_date'로 변경
+        days_available = (target_date - start_date).days + 1
+        new_entries = []
+        remaining_units = total_units
+        
+        # start_date부터 시작하는 날짜 리스트 생성
+        possible_days = [start_date + timedelta(days=i) for i in range(days_available) if i % interval == 0]
+        
+        if possible_days:
+            for i, current_date in enumerate(possible_days):
+                if remaining_units <= 0: break
+                days_left = len(possible_days) - i
+                
+                ideal = remaining_units // days_left
+                # 선택한 배분 방식에 따라 분량 계산
+                daily_amount = max(min_limit, ideal) if mode == "일찍 끝내기" else max(min_limit, ideal)
+                daily_amount = min(daily_amount, remaining_units)
+                
+                new_entries.append({
+                    'Task': task_name, 
+                    'Date': current_date, 
+                    'Amount': daily_amount, 
+                    'Status': 'Pending',
+                    'Group_ID': group_id
+                })
+                remaining_units -= daily_amount
 
-                current_df = load_data(current_user)
-                updated_df = pd.concat([current_df, pd.DataFrame(new_entries)], ignore_index=True)
-                save_data(updated_df, current_user)
-                st.success("계획이 추가되었습니다!")
-                st.rerun()
+            # 데이터 합치기 및 저장
+            updated_df = pd.concat([display_df, pd.DataFrame(new_entries)], ignore_index=True)
+            save_data(updated_df, current_user)
+            st.success(f"{start_date}부터 시작하는 계획이 생성되었습니다!")
+            st.rerun()
+
 
 # 데이터 로드
 display_df = load_data(current_user)
