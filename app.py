@@ -72,8 +72,8 @@ with st.sidebar:
     st.divider()
     # 사이드바: 계획 추가 섹션 내부에 추가
     st.header("➕ 새 계획 추가")
-        task_name = st.text_input("학습 과목명")
-        total_units = st.number_input("전체 분량", min_value=1, value=10)
+    task_name = st.text_input("학습 과목명")
+    total_units = st.number_input("전체 분량", min_value=1, value=10)
 
     # 시작 날짜와 마감일 설정 (시작일은 오늘 이후, 마감일은 시작일 이후로 제한)
     start_date = st.date_input("학습 시작일", value=datetime.now().date())
