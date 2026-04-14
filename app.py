@@ -143,7 +143,7 @@ if not display_df.empty:
             save_data(pd.DataFrame(columns=['Task', 'Date', 'Amount', 'Status', 'Group_ID']), current_user)
             st.rerun()
 
-        with tab2:
+    with tab2:
         today_val = datetime.now().date()
         today_indices = display_df[display_df['Date'] == today_val].index
         
