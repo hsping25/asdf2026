@@ -138,10 +138,26 @@ if not display_df.empty:
     tab1, tab2 = st.tabs(["📅 전체 일정", "✅ 오늘의 미션"])
     
     with tab1:
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
+        # 1. 색상 매핑 (그룹별로 연한 배경색 지정)
+        # 파스텔톤 배경색 리스트 (CSS 컬러 코드)
+        colors = ['#E1F5FE', '#E8F5E9', '#FFF3E0', '#FFEBEE', '#F3E5F5', '#EFEBE9', '#FAFAFA']
+        unique_gids = display_df['Group_ID'].unique()
+        color_map = {gid: colors[i % len(colors)] for i, gid in enumerate(unique_gids)}
+
+        # 2. 행별로 색상을 적용하는 함수 정의
+        def style_row(row):
+            bg_color = color_map.get(row['Group_ID'], '#FFFFFF')
+            return [f'background-color: {bg_color}'] * len(row)
+
+        # 3. 스타일 적용 후 출력
+        styled_df = display_df.style.apply(style_row, axis=1)
+        
+        st.dataframe(styled_df, use_container_width=True, hide_index=True)
+
         if st.button("데이터 전체 초기화"):
             save_data(pd.DataFrame(columns=['Task', 'Date', 'Amount', 'Status', 'Group_ID']), current_user)
             st.rerun()
+
 
     with tab2:
         today_val = datetime.now().date()
