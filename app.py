@@ -137,7 +137,7 @@ if not display_df.empty:
     display_df = display_df.sort_values(by=['Date', 'Task']).reset_index(drop=True)
     tab1, tab2 = st.tabs(["📅 전체 일정", "✅ 오늘의 미션"])
     
-     with tab1:
+    with tab1:
         # 1. 그룹별 배경색 매핑 (파스텔톤)
         colors = ['#E1F5FE', '#E8F5E9', '#FFF3E0', '#FFEBEE', '#F3E5F5', '#EFEBE9', '#FAFAFA']
         unique_gids = display_df['Group_ID'].unique()
