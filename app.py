@@ -143,28 +143,43 @@ if not display_df.empty:
             save_data(pd.DataFrame(columns=['Task', 'Date', 'Amount', 'Status', 'Group_ID']), current_user)
             st.rerun()
 
-    with tab2:
+        with tab2:
         today_val = datetime.now().date()
         today_indices = display_df[display_df['Date'] == today_val].index
         
         if not today_indices.empty:
+            # 그룹별 아이콘 다시 매핑 (색상 구분을 위해)
+            group_icons = ["🟦", "🟩", "🟧", "🟥", "🟪", "🟨", "🟫", "⬛"]
+            unique_groups = display_df['Group_ID'].unique()
+            group_map = {gid: group_icons[i % len(group_icons)] for i, gid in enumerate(unique_groups)}
+
             for idx in today_indices:
                 row = display_df.loc[idx]
-                c1, c2 = st.columns([0.8, 0.2])
-                with c1:
-                    is_done = (row['Status'] == 'Done')
-                    check = st.checkbox(f"{row['Task']} ({row['Amount']}개)", value=is_done, key=f"chk_{idx}")
-                    if check != is_done:
-                        display_df.at[idx, 'Status'] = 'Done' if check else 'Pending'
-                        save_data(display_df, current_user)
-                        st.rerun()
-                with c2:
-                    if row['Status'] == 'Done':
-                        if st.button("🗑️ 삭제", key=f"del_{idx}"):
-                            save_data(display_df.drop(idx), current_user)
+                icon = group_map.get(row['Group_ID'], "⚪")
+                
+                # --- [수정 포인트] 셀 색깔 효과를 위한 컨테이너 ---
+                with st.container(border=True):
+                    c1, c2 = st.columns([0.8, 0.2])
+                    
+                    with c1:
+                        is_done = (row['Status'] == 'Done')
+                        # 과목명 앞에 그룹 색상 아이콘을 붙여 '색깔이 바뀐 효과'를 줌
+                        label = f"{icon} **{row['Task']}** ({row['Amount']}개)"
+                        if is_done:
+                            label = f"✅ ~{label}~" # 완료 시 취소선
+                        
+                        check = st.checkbox(label, value=is_done, key=f"chk_{idx}")
+                        
+                        if check != is_done:
+                            display_df.at[idx, 'Status'] = 'Done' if check else 'Pending'
+                            save_data(display_df, current_user)
                             st.rerun()
+                    
+                    with c2:
+                        if is_done:
+                            if st.button("🗑️ 삭제", key=f"del_{idx}", use_container_width=True):
+                                save_data(display_df.drop(idx), current_user)
+                                st.rerun()
         else:
             st.info("오늘 예정된 학습이 없습니다.")
-else:
-    st.divider()
-    st.info("💡 아직 등록된 계획이 없습니다. 왼쪽 사이드바에서 새로운 학습 계획을 추가해 보세요!")
+
